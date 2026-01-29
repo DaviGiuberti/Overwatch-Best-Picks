@@ -7,6 +7,25 @@ import threading
 
 BASE_DIR = os.path.dirname(__file__)
 PYTHON = sys.executable
+MAP_FILE = os.path.join(BASE_DIR, "map.txt")
+
+# ---------- Menus ----------
+
+def print_main_menu():
+    print(
+        "Comandos disponíveis:\n"
+        "  1 -> modificar mapa analisado\n"
+        "  2 -> alterar Role/Função\n"
+        "  3 -> adicionar/remover heróis favoritos\n"
+        "  4 -> atualizar winrate dos mapas\n"
+        "  5 -> remover mapa selecionado\n"
+        "  6 -> sair do programa\n"
+    )
+
+def print_small_menu():
+    print(
+        "\n[1] Mapa  [2] Role  [3] Favoritos  [4] Winrate  [5] Remover mapa  [6] Sair\n"
+    )
 
 # ---------- Pipelines ----------
 
@@ -14,13 +33,18 @@ def run_pipeline():
     try:
         print("Executando screenshot.py...")
         subprocess.run([PYTHON, os.path.join(BASE_DIR, "screenshot.py")], check=True)
+
         print("Executando comparar.py...")
         subprocess.run([PYTHON, os.path.join(BASE_DIR, "comparar.py")], check=True)
+
         print("Executando choose_ow_hero.py...")
         subprocess.run([PYTHON, os.path.join(BASE_DIR, "choose_ow_hero.py")], check=True)
-        print("Pipeline finalizado.\n")
+
+        print("Pipeline finalizado.")
     except subprocess.CalledProcessError as e:
-        print("Erro ao executar um dos scripts:", e)
+        print("Erro ao executar pipeline:", e)
+    finally:
+        print_small_menu()
 
 
 def run_site():
@@ -28,57 +52,65 @@ def run_site():
         print("Executando site.py...")
         subprocess.run([PYTHON, os.path.join(BASE_DIR, "site.py")], check=True)
     except subprocess.CalledProcessError as e:
-        print("Erro ao executar um dos scripts:", e)
+        print("Erro ao executar site.py:", e)
+    finally:
+        print_small_menu()
+
 
 def run_map():
     try:
         subprocess.run([PYTHON, os.path.join(BASE_DIR, "map.py")], check=True)
+
         print("Retirando a winrate do mapa...")
         subprocess.run([PYTHON, os.path.join(BASE_DIR, "retirarWinrate.py")], check=True)
-        print("Pipeline 'map' finalizado.\n")
+
+        print("Pipeline 'map' finalizado.")
     except subprocess.CalledProcessError as e:
-        print("Erro ao executar um dos scripts:", e)
+        print("Erro ao executar map:", e)
+    finally:
+        print_small_menu()
 
 
 def run_role():
     try:
-        print("Executando Role.py...")
-        subprocess.run([PYTHON, os.path.join(BASE_DIR, "Role.py")], check=True)
-        print("Role atualizado.\n")
+        print("Executando roles.py...")
+        subprocess.run([PYTHON, os.path.join(BASE_DIR, "roles.py")], check=True)
+        print("Role atualizado.")
     except subprocess.CalledProcessError as e:
         print("Erro ao executar Role.py:", e)
+    finally:
+        print_small_menu()
 
 
 def run_favorite():
     try:
         print("Executando favoriteHero.py...")
         subprocess.run([PYTHON, os.path.join(BASE_DIR, "favoriteHero.py")], check=True)
-        print("Heroi favorito atualizado.\n")
+        print("Herói favorito atualizado.")
     except subprocess.CalledProcessError as e:
         print("Erro ao executar favoriteHero.py:", e)
+    finally:
+        print_small_menu()
 
 
-# ---------- Input thread (escolha por ENTER) ----------
+def remove_map():
+    if os.path.exists(MAP_FILE):
+        os.remove(MAP_FILE)
+        print("map.txt removido com sucesso.")
+    else:
+        print("Nenhum map.txt encontrado para remover.")
+    print_small_menu()
+
+# ---------- Input thread ----------
 
 def input_loop():
-    """Loop que espera o usuário digitar um comando no terminal e dar ENTER.
-    Comandos suportados: map, role, favorite, pipeline, exit (ou quit)
-    """
-    help_text = (
-        "Comandos disponíveis:\n"
-        "  1      -> modifica o mapa analisado\n"
-        "  2      -> Alterar a Role/Função jogada\n"
-        "  3      -> adicionar ou remover herois favoritos\n"
-        "  4      -> atualiza a winrate dos mapas (faça apenas após grandes atualizações)\n"
-        "  5      -> sai do programa\n"
-    )
-    print(help_text)
+    print_main_menu()
 
     while True:
         try:
             cmd = input("> ").strip().lower()
         except (EOFError, KeyboardInterrupt):
-            print("\nEntrada interrompida. Saindo do input loop.")
+            print("\nEntrada interrompida.")
             break
 
         if not cmd:
@@ -88,39 +120,34 @@ def input_loop():
             run_map()
         elif cmd == "2":
             run_role()
-        elif cmd in ("favorite", "fav", "favoritehero", "favorite_hero", "3"):
+        elif cmd in ("3", "favorite", "fav"):
             run_favorite()
-        elif cmd in ("4"):
+        elif cmd == "4":
             run_site()
-        elif cmd in ("exit", "quit", "5"):
-            print("Encerrando programa por comando do usuário...")
-            # Limpa hotkeys e termina o programa
+        elif cmd == "5":
+            remove_map()
+        elif cmd in ("6", "exit", "quit"):
+            print("Encerrando programa...")
             keyboard.clear_all_hotkeys()
             os._exit(0)
         else:
-            print("Comando não reconhecido.\n")
-            print(help_text)
+            print("Comando não reconhecido.")
+            print_main_menu()
 
+# ---------- Hotkeys ----------
 
-# ---------- Configuração das hotkeys ----------
+keyboard.add_hotkey("tab+1", run_pipeline)
 
-# Usa add_hotkey para não ficar 'hookando' todas as teclas — isto respeita sua
-# exigência de "não detectar todas as teclas que estão sendo apertadas".
-# Ainda assim, TAB+1 continuará funcionando exatamente como antes.
-keyboard.add_hotkey('tab+1', run_pipeline)
-
-# Inicia a thread que lê comandos via ENTER no terminal
 input_thread = threading.Thread(target=input_loop, daemon=True)
 input_thread.start()
 
-print("Aguardando TAB+1 ou digite um comando e pressione ENTER. (Ctrl+C para sair)")
+print("TAB+1 executa o pipeline | ou digite um comando e ENTER")
 
-# Mantém o programa rodando enquanto a thread de input estiver viva.
 try:
     while input_thread.is_alive():
         time.sleep(0.5)
 except KeyboardInterrupt:
-    print("\nInterrompido pelo usuário. Saindo...")
+    print("\nInterrompido pelo usuário.")
     keyboard.clear_all_hotkeys()
 
 print("Programa finalizado.")

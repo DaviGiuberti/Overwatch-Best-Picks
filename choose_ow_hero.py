@@ -5,6 +5,58 @@ Calcula pontuação baseada em matchups contra inimigos, sinergia com aliados e 
 
 import pandas as pd
 from typing import List, Dict, Tuple
+import os
+
+
+def read_role() -> str:
+    """
+    Lê o arquivo Roles.txt para determinar qual role usar
+    
+    Returns:
+        Nome da role (DPS, Suporte, Tank, AllRoles)
+    """
+    role_file = "Roles.txt"
+    
+    if not os.path.exists(role_file):
+        print("Arquivo 'Roles.txt' não encontrado!")
+        print("Por favor, crie o arquivo e defina sua Role (DPS, Suporte, Tank ou AllRoles)")
+        return None
+    
+    with open(role_file, 'r', encoding='utf-8') as f:
+        role = f.read().strip()
+    
+    if not role:
+        print("Arquivo 'Roles.txt' está vazio!")
+        print("Por favor, defina sua Role (DPS, Suporte, Tank ou AllRoles)")
+        return None
+    
+    # Verifica se existe o arquivo correspondente
+    role_heroes_file = f"{role}.txt"
+    if not os.path.exists(role_heroes_file):
+        print(f"Arquivo '{role_heroes_file}' não encontrado!")
+        print("Por favor, defina sua Role e Personagens Favoritos corretamente.")
+        print("Roles disponíveis: DPS, Suporte, Tank, AllRoles")
+        return None
+    
+    return role
+
+
+def read_playable_heroes(role: str) -> List[str]:
+    """
+    Lê o arquivo da role específica para obter os heróis jogáveis
+    
+    Args:
+        role: Nome da role (DPS, Suporte, Tank, AllRoles)
+    
+    Returns:
+        Lista com nomes dos heróis que o jogador usa
+    """
+    role_file = f"{role}.txt"
+    
+    with open(role_file, 'r', encoding='utf-8') as f:
+        heroes = [line.strip() for line in f.readlines() if line.strip()]
+    
+    return heroes
 
 
 def read_lineup(filepath: str = "lineup.txt") -> Tuple[List[str], List[str]]:
@@ -23,12 +75,23 @@ def read_lineup(filepath: str = "lineup.txt") -> Tuple[List[str], List[str]]:
     return allies, enemies
 
 
-def read_heroes_data(filepath: str = "heroes.xlsx") -> pd.DataFrame:
+def read_heroes_ally_data(filepath: str = "heroes ally.xlsx") -> pd.DataFrame:
     """
-    Lê o arquivo heroes.xlsx com os matchups
+    Lê o arquivo heroes ally.xlsx com os matchups de aliados
     
     Returns:
-        DataFrame com os dados dos heróis
+        DataFrame com os dados de sinergia com aliados
+    """
+    df = pd.read_excel(filepath, sheet_name=0, header=0)
+    return df
+
+
+def read_heroes_enemy_data(filepath: str = "heroes enemy.xlsx") -> pd.DataFrame:
+    """
+    Lê o arquivo heroes enemy.xlsx com os matchups contra inimigos
+    
+    Returns:
+        DataFrame com os dados de matchups contra inimigos
     """
     df = pd.read_excel(filepath, sheet_name=0, header=0)
     return df
@@ -61,31 +124,10 @@ def read_winrate_data(filepath: str = "winrate.xlsx") -> Dict[str, float]:
     return winrate_dict
 
 
-def get_playable_heroes(df: pd.DataFrame) -> List[str]:
-    """
-    Identifica os heróis jogáveis baseado nas colunas do DataFrame
-    Procura por colunas que terminam com ' Enemy' e ' Ally'
-    
-    Returns:
-        Lista com nomes dos heróis jogáveis
-    """
-    playable_heroes = []
-    columns = df.columns.tolist()
-    
-    for col in columns:
-        col_str = str(col)
-        if col_str.endswith(' Enemy'):
-            hero_name = col_str.replace(' Enemy', '')
-            # Verifica se existe a coluna Ally correspondente
-            if f'{hero_name} Ally' in columns:
-                playable_heroes.append(hero_name)
-    
-    return playable_heroes
-
-
 def calculate_hero_score(
     hero_name: str,
-    df: pd.DataFrame,
+    ally_df: pd.DataFrame,
+    enemy_df: pd.DataFrame,
     allies: List[str],
     enemies: List[str],
     winrate_dict: Dict[str, float]
@@ -93,30 +135,42 @@ def calculate_hero_score(
     """
     Calcula a pontuação de um herói jogável
     
+    Args:
+        hero_name: Nome do herói a ser avaliado
+        ally_df: DataFrame com dados de sinergia (heroes ally.xlsx)
+        enemy_df: DataFrame com dados de matchups (heroes enemy.xlsx)
+        allies: Lista de aliados
+        enemies: Lista de inimigos
+        winrate_dict: Dicionário com winrates
+    
     Returns:
         Dicionário com enemy_score, ally_score, map_winrate e total
     """
-    enemy_col = f'{hero_name} Enemy'
-    ally_col = f'{hero_name} Ally'
-    
     # Calcular Enemy Score
+    # Busca a linha do herói na primeira coluna do enemy_df
     enemy_score = 0.0
-    for enemy in enemies:
-        # Busca o herói inimigo na coluna A (primeira coluna)
-        hero_row = df[df.iloc[:, 0] == enemy]
-        if not hero_row.empty and enemy_col in df.columns:
-            value = hero_row[enemy_col].values[0]
-            if pd.notna(value):
-                enemy_score += float(value)
+    hero_row_enemy = enemy_df[enemy_df.iloc[:, 0] == hero_name]
+    
+    if not hero_row_enemy.empty:
+        for enemy in enemies:
+            # Busca a coluna do inimigo (primeira linha)
+            if enemy in enemy_df.columns:
+                value = hero_row_enemy[enemy].values[0]
+                if pd.notna(value):
+                    enemy_score += float(value)
     
     # Calcular Ally Score
+    # Busca a linha do herói na primeira coluna do ally_df
     ally_score = 0.0
-    for ally in allies:
-        hero_row = df[df.iloc[:, 0] == ally]
-        if not hero_row.empty and ally_col in df.columns:
-            value = hero_row[ally_col].values[0]
-            if pd.notna(value):
-                ally_score += float(value)
+    hero_row_ally = ally_df[ally_df.iloc[:, 0] == hero_name]
+    
+    if not hero_row_ally.empty:
+        for ally in allies:
+            # Busca a coluna do aliado (primeira linha)
+            if ally in ally_df.columns:
+                value = hero_row_ally[ally].values[0]
+                if pd.notna(value):
+                    ally_score += float(value)
     
     # Buscar Map Winrate
     map_winrate = winrate_dict.get(hero_name, 0.0)
@@ -163,18 +217,36 @@ def run_hero_ranking():
     """
     Função principal que executa todo o processo de ranking
     """
+    # Ler a role do jogador
+    role = read_role()
+    if role is None:
+        return
+    
+    print(f"Role selecionada: {role}")
+    print()
+    
+    # Ler heróis jogáveis da role
+    playable_heroes = read_playable_heroes(role)
+    print(f"Heróis disponíveis: {', '.join(playable_heroes)}")
+    print()
+    
     # Ler dados
     allies, enemies = read_lineup()
-    heroes_df = read_heroes_data()
+    print(f"Aliados: {', '.join(allies)}")
+    print(f"Inimigos: {', '.join(enemies)}")
+    print()
+    
+    ally_df = read_heroes_ally_data()
+    enemy_df = read_heroes_enemy_data()
     winrate_dict = read_winrate_data()
-    playable_heroes = get_playable_heroes(heroes_df)
     
     # Calcular pontuação para cada herói jogável
     rankings = []
     for hero in playable_heroes:
         score_data = calculate_hero_score(
             hero,
-            heroes_df,
+            ally_df,
+            enemy_df,
             allies,
             enemies,
             winrate_dict

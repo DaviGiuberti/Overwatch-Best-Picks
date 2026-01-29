@@ -3,13 +3,12 @@ import subprocess
 import sys
 import os
 import time
+import threading
 
 BASE_DIR = os.path.dirname(__file__)
 PYTHON = sys.executable
 
-# Buffer para capturar digitação
-typed_buffer = []
-last_key_time = time.time()
+# ---------- Pipelines ----------
 
 def run_pipeline():
     try:
@@ -23,49 +22,105 @@ def run_pipeline():
     except subprocess.CalledProcessError as e:
         print("Erro ao executar um dos scripts:", e)
 
-def run_map_pipeline():
+
+def run_site():
     try:
-        print("Executando map.py...")
-        subprocess.run([PYTHON, os.path.join(BASE_DIR, "map.py")], check=True)
         print("Executando site.py...")
         subprocess.run([PYTHON, os.path.join(BASE_DIR, "site.py")], check=True)
-        print("Executando retirarWinrate.py...")
+    except subprocess.CalledProcessError as e:
+        print("Erro ao executar um dos scripts:", e)
+
+def run_map():
+    try:
+        subprocess.run([PYTHON, os.path.join(BASE_DIR, "map.py")], check=True)
+        print("Retirando a winrate do mapa...")
         subprocess.run([PYTHON, os.path.join(BASE_DIR, "retirarWinrate.py")], check=True)
         print("Pipeline 'map' finalizado.\n")
     except subprocess.CalledProcessError as e:
         print("Erro ao executar um dos scripts:", e)
 
-def on_key_event(event):
-    global typed_buffer, last_key_time
-    
-    # Detecta TAB + 1
-    if event.name == "1" and event.event_type == "down":
-        if keyboard.is_pressed("tab"):
-            run_pipeline()
-            time.sleep(0.5)
-            return
-    
-    # Detecta digitação de "map"
-    if event.event_type == "down" and len(event.name) == 1:
-        current_time = time.time()
-        
-        # Limpa buffer se passou mais de 1 segundo desde a última tecla
-        if current_time - last_key_time > 1.0:
-            typed_buffer.clear()
-        
-        last_key_time = current_time
-        typed_buffer.append(event.name.lower())
-        
-        # Mantém apenas os últimos 3 caracteres
-        if len(typed_buffer) > 3:
-            typed_buffer.pop(0)
-        
-        # Verifica se digitou "map"
-        if ''.join(typed_buffer) == "000":
-            print("\n'map' detectado!")
-            typed_buffer.clear()
-            run_map_pipeline()
 
-print("Aguardando TAB + 1 ou digitação de '000'... Ctrl+C para sair")
-keyboard.hook(on_key_event)
-keyboard.wait()
+def run_role():
+    try:
+        print("Executando Role.py...")
+        subprocess.run([PYTHON, os.path.join(BASE_DIR, "Role.py")], check=True)
+        print("Role atualizado.\n")
+    except subprocess.CalledProcessError as e:
+        print("Erro ao executar Role.py:", e)
+
+
+def run_favorite():
+    try:
+        print("Executando favoriteHero.py...")
+        subprocess.run([PYTHON, os.path.join(BASE_DIR, "favoriteHero.py")], check=True)
+        print("Heroi favorito atualizado.\n")
+    except subprocess.CalledProcessError as e:
+        print("Erro ao executar favoriteHero.py:", e)
+
+
+# ---------- Input thread (escolha por ENTER) ----------
+
+def input_loop():
+    """Loop que espera o usuário digitar um comando no terminal e dar ENTER.
+    Comandos suportados: map, role, favorite, pipeline, exit (ou quit)
+    """
+    help_text = (
+        "Comandos disponíveis:\n"
+        "  1      -> modifica o mapa analisado\n"
+        "  2      -> Alterar a Role/Função jogada\n"
+        "  3      -> adicionar ou remover herois favoritos\n"
+        "  4      -> atualiza a winrate dos mapas (faça apenas após grandes atualizações)\n"
+        "  5      -> sai do programa\n"
+    )
+    print(help_text)
+
+    while True:
+        try:
+            cmd = input("> ").strip().lower()
+        except (EOFError, KeyboardInterrupt):
+            print("\nEntrada interrompida. Saindo do input loop.")
+            break
+
+        if not cmd:
+            continue
+
+        if cmd == "1":
+            run_map()
+        elif cmd == "2":
+            run_role()
+        elif cmd in ("favorite", "fav", "favoritehero", "favorite_hero", "3"):
+            run_favorite()
+        elif cmd in ("4"):
+            run_site()
+        elif cmd in ("exit", "quit", "5"):
+            print("Encerrando programa por comando do usuário...")
+            # Limpa hotkeys e termina o programa
+            keyboard.clear_all_hotkeys()
+            os._exit(0)
+        else:
+            print("Comando não reconhecido.\n")
+            print(help_text)
+
+
+# ---------- Configuração das hotkeys ----------
+
+# Usa add_hotkey para não ficar 'hookando' todas as teclas — isto respeita sua
+# exigência de "não detectar todas as teclas que estão sendo apertadas".
+# Ainda assim, TAB+1 continuará funcionando exatamente como antes.
+keyboard.add_hotkey('tab+1', run_pipeline)
+
+# Inicia a thread que lê comandos via ENTER no terminal
+input_thread = threading.Thread(target=input_loop, daemon=True)
+input_thread.start()
+
+print("Aguardando TAB+1 ou digite um comando e pressione ENTER. (Ctrl+C para sair)")
+
+# Mantém o programa rodando enquanto a thread de input estiver viva.
+try:
+    while input_thread.is_alive():
+        time.sleep(0.5)
+except KeyboardInterrupt:
+    print("\nInterrompido pelo usuário. Saindo...")
+    keyboard.clear_all_hotkeys()
+
+print("Programa finalizado.")

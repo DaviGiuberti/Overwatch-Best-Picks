@@ -38,6 +38,21 @@ MAPS = [
     "Runasapi"
 ]
 
+def format_for_file(text):
+    """Formata o texto para salvar no arquivo"""
+    # Remove acentos
+    nfkd = unicodedata.normalize('NFKD', text)
+    text = ''.join(c for c in nfkd if not unicodedata.combining(c))
+
+    # Ajustes finais
+    text = text.lower()
+    text = text.replace(":", "")
+    text = text.replace(" ", "-")
+
+    return text
+
+
+
 def normalize_text(text):
     """Remove acentos e normaliza o texto para comparação"""
     # Remove acentos
@@ -69,9 +84,11 @@ def find_best_match(user_input):
     return None
 
 def save_to_file(map_name):
-    """Salva o nome do mapa em map.txt"""
+    """Salva o nome do mapa em map.txt já normalizado"""
+    formatted_name = format_for_file(map_name)
     with open('map.txt', 'w', encoding='utf-8') as f:
-        f.write(map_name)
+        f.write(formatted_name)
+
 
 def main():
     print("=" * 50)

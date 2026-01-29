@@ -1,0 +1,79 @@
+#!/usr/bin/env python3
+import mss
+import os
+from PIL import Image
+
+outdir = os.path.expanduser("print")
+os.makedirs(outdir, exist_ok=True)
+
+# --- configuração base (valores definidos para 1280x720) ---
+BASE_W, BASE_H = 1280, 720
+
+captures_template = [
+    {'top':137, 'width':41, 'height':41, 'name':'ally1.png'},
+    {'top':220, 'width':41, 'height':41, 'name':'ally2.png'},
+    {'top':261, 'width':41, 'height':41, 'name':'ally3.png'},
+    {'top':303, 'width':41, 'height':41, 'name':'ally4.png'},
+    {'top':400, 'width':41, 'height':41, 'name':'enemy1.png'},
+    {'top':441, 'width':41, 'height':41, 'name':'enemy2.png'},
+    {'top':482, 'width':41, 'height':41, 'name':'enemy3.png'},
+    {'top':523, 'width':41, 'height':41, 'name':'enemy4.png'},
+    {'top':564, 'width':41, 'height':42, 'name':'enemy5.png'},
+]
+
+# pastas + valor de left correspondentes (valores para 1280x720)
+perks = [
+    ('0perk', 207),
+    ('1perk', 203),
+    ('2perk', 182),
+]
+
+# 1) capturar a tela do monitor principal e salvar em print/full.png
+with mss.mss() as sct:
+    monitor_index = 1 if len(sct.monitors) > 1 else 0
+    monitor = sct.monitors[monitor_index]
+    print(f"Usando monitor {monitor_index}: {monitor}")
+
+    sct_img = sct.grab(monitor)
+    full_img = Image.frombytes('RGB', sct_img.size, sct_img.rgb)
+    full_w, full_h = full_img.size
+    full_path = os.path.join(outdir, "full.png")
+    full_img.save(full_path)
+    print(f"Full screenshot salva em: {full_path} (resolução detectada: {full_w}x{full_h})")
+
+# calcular fatores de escala (do base 1280x720 -> resolução atual)
+scale_x = full_w / BASE_W
+scale_y = full_h / BASE_H
+print(f"Fatores de escala -> x: {scale_x:.4f}, y: {scale_y:.4f}")
+
+# função helper para converter e limitar coordenadas
+def scale_and_clamp(left_base, top_base, width_base, height_base, img_w, img_h):
+    left = int(round(left_base * scale_x))
+    top = int(round(top_base * scale_y))
+    w = int(round(width_base * scale_x))
+    h = int(round(height_base * scale_y))
+    # clamp nas bordas da imagem
+    left = max(0, min(left, img_w - 1))
+    top = max(0, min(top, img_h - 1))
+    right = max(0, min(left + max(1, w), img_w))
+    bottom = max(0, min(top + max(1, h), img_h))
+    return (left, top, right, bottom)
+
+# 2) recortar a partir da imagem inteira e salvar nas subpastas
+for perk_name, left_base in perks:
+    perk_dir = os.path.join(outdir, perk_name)
+    os.makedirs(perk_dir, exist_ok=True)
+
+    for c in captures_template:
+        left, top, right, bottom = scale_and_clamp(
+            left_base, c['top'], c['width'], c['height'], full_w, full_h
+        )
+        crop = full_img.crop((left, top, right, bottom))
+        out_path = os.path.join(perk_dir, c['name'])
+        crop.save(out_path)
+        # opcional: debug
+        # print(f"Saved {c['name']} -> ({left},{top})-({right},{bottom}) to {perk_dir}")
+
+    print(f"Salvos {len(captures_template)} recortes em: {perk_dir}")
+
+print("Pronto!")

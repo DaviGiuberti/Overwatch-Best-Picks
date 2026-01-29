@@ -13,13 +13,13 @@ def read_role() -> str:
     Lê o arquivo Roles.txt para determinar qual role usar
     
     Returns:
-        Nome da role (DPS, Suporte, Tank, AllRoles)
+        Nome da role (DPS, Support, Tank, AllRoles)
     """
     role_file = "Roles.txt"
     
     if not os.path.exists(role_file):
         print("Arquivo 'Roles.txt' não encontrado!")
-        print("Por favor, crie o arquivo e defina sua Role (DPS, Suporte, Tank ou AllRoles)")
+        print("Por favor, crie o arquivo e defina sua Role (DPS, Support, Tank ou AllRoles)")
         return None
     
     with open(role_file, 'r', encoding='utf-8') as f:
@@ -27,7 +27,7 @@ def read_role() -> str:
     
     if not role:
         print("Arquivo 'Roles.txt' está vazio!")
-        print("Por favor, defina sua Role (DPS, Suporte, Tank ou AllRoles)")
+        print("Por favor, defina sua Role (DPS, Support, Tank ou AllRoles)")
         return None
     
     # Verifica se existe o arquivo correspondente
@@ -35,7 +35,7 @@ def read_role() -> str:
     if not os.path.exists(role_heroes_file):
         print(f"Arquivo '{role_heroes_file}' não encontrado!")
         print("Por favor, defina sua Role e Personagens Favoritos corretamente.")
-        print("Roles disponíveis: DPS, Suporte, Tank, AllRoles")
+        print("Roles disponíveis: DPS, Support, Tank, AllRoles")
         return None
     
     return role
@@ -46,7 +46,7 @@ def read_playable_heroes(role: str) -> List[str]:
     Lê o arquivo da role específica para obter os heróis jogáveis
     
     Args:
-        role: Nome da role (DPS, Suporte, Tank, AllRoles)
+        role: Nome da role (DPS, Support, Tank, AllRoles)
     
     Returns:
         Lista com nomes dos heróis que o jogador usa

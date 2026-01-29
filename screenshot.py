@@ -56,7 +56,7 @@ role = read_role()
 skip_files = set()
 if role == "DPS":
     skip_files.add("ally2.png")
-elif role == "SUPORTE":
+elif role == "Support":
     skip_files.add("ally4.png")
 elif role == "TANK" or role == "ALLROLES":
     skip_files.add("ally1.png")
@@ -65,7 +65,7 @@ elif role is None:
     pass
 else:
     # role inesperado — avisa e não pula nada
-    print(f"Role '{role}' não é uma das opções esperadas (DPS, Suporte, Tank, AllRoles). Fazendo todos os recortes.")
+    print(f"Role '{role}' não é uma das opções esperadas (DPS, Support, Tank, AllRoles). Fazendo todos os recortes.")
 
 if skip_files:
     print("Arquivos que serão pulados conforme Role.txt:", ", ".join(sorted(skip_files)))

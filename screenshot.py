@@ -11,9 +11,10 @@ BASE_W, BASE_H = 1280, 720
 
 captures_template = [
     {'top':137, 'width':41, 'height':41, 'name':'ally1.png'},
-    {'top':220, 'width':41, 'height':41, 'name':'ally2.png'},
-    {'top':261, 'width':41, 'height':41, 'name':'ally3.png'},
-    {'top':303, 'width':41, 'height':41, 'name':'ally4.png'},
+    {'top':178, 'width':41, 'height':41, 'name':'ally2.png'},
+    {'top':220, 'width':41, 'height':41, 'name':'ally3.png'},
+    {'top':261, 'width':41, 'height':41, 'name':'ally4.png'},
+    {'top':303, 'width':41, 'height':41, 'name':'ally5.png'},
     {'top':400, 'width':41, 'height':41, 'name':'enemy1.png'},
     {'top':441, 'width':41, 'height':41, 'name':'enemy2.png'},
     {'top':482, 'width':41, 'height':41, 'name':'enemy3.png'},
@@ -27,6 +28,47 @@ perks = [
     ('1perk', 203),
     ('2perk', 182),
 ]
+
+# --- Ler role a partir de Role.txt (mesmo diretório do script) ---
+def read_role():
+    # tenta localizar Role.txt no mesmo diretório do script; fallback para cwd
+    base_dir = os.path.dirname(__file__) if '__file__' in globals() else os.getcwd()
+    role_path = os.path.join(base_dir, "Role.txt")
+    if not os.path.exists(role_path):
+        print("Role.txt não encontrado — serão feitos todos os recortes.")
+        return None
+    try:
+        with open(role_path, "r", encoding="utf-8") as f:
+            # pega a primeira linha não vazia e normaliza
+            for line in f:
+                line = line.strip()
+                if line:
+                    role = line.upper()
+                    print(f"Role lido de Role.txt: '{role}'")
+                    return role
+    except Exception as e:
+        print(f"Erro ao ler Role.txt: {e}. Continuando com todos os recortes.")
+    return None
+
+role = read_role()
+
+# determinar quais arquivos pular com base no role
+skip_files = set()
+if role == "DPS":
+    skip_files.add("ally2.png")
+elif role == "SUPORTE":
+    skip_files.add("ally4.png")
+elif role == "TANK" or role == "ALLROLES":
+    skip_files.add("ally1.png")
+elif role is None:
+    # nenhum skip (Role.txt ausente ou erro)
+    pass
+else:
+    # role inesperado — avisa e não pula nada
+    print(f"Role '{role}' não é uma das opções esperadas (DPS, Suporte, Tank, AllRoles). Fazendo todos os recortes.")
+
+if skip_files:
+    print("Arquivos que serão pulados conforme Role.txt:", ", ".join(sorted(skip_files)))
 
 # 1) capturar a tela do monitor principal e salvar em print/full.png
 with mss.mss() as sct:
@@ -64,16 +106,26 @@ for perk_name, left_base in perks:
     perk_dir = os.path.join(outdir, perk_name)
     os.makedirs(perk_dir, exist_ok=True)
 
+    saved_count = 0
+    skipped_count = 0
+
     for c in captures_template:
+        if c['name'] in skip_files:
+            skipped_count += 1
+            # opcional: pode salvar um placeholder vazio se quiser; aqui apenas pula
+            # print(f"Pulado (role): {c['name']}")
+            continue
+
         left, top, right, bottom = scale_and_clamp(
             left_base, c['top'], c['width'], c['height'], full_w, full_h
         )
         crop = full_img.crop((left, top, right, bottom))
         out_path = os.path.join(perk_dir, c['name'])
         crop.save(out_path)
+        saved_count += 1
         # opcional: debug
         # print(f"Saved {c['name']} -> ({left},{top})-({right},{bottom}) to {perk_dir}")
 
-    print(f"Salvos {len(captures_template)} recortes em: {perk_dir}")
+    print(f"Salvos {saved_count} recortes em: {perk_dir} (pulados: {skipped_count})")
 
 print("Pronto!")

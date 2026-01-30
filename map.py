@@ -4,6 +4,8 @@
 from difflib import get_close_matches
 import unicodedata
 
+
+
 # Lista completa de mapas do Overwatch
 MAPS = [
     # Control
@@ -90,7 +92,7 @@ def save_to_file(map_name):
         f.write(formatted_name)
 
 
-def main():
+def executar():
     print("=" * 50)
     print("OVERWATCH MAP MATCHER")
     print("=" * 50)
@@ -109,5 +111,6 @@ def main():
         print("\n✗ Nenhum mapa encontrado que corresponda à sua entrada.")
         print("Tente novamente com um nome mais próximo ao original.")
 
+
 if __name__ == "__main__":
-    main()
+    executar()

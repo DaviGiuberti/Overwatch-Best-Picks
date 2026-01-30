@@ -6,14 +6,24 @@ Calcula pontuação baseada em matchups contra inimigos, sinergia com aliados e 
 import pandas as pd
 from typing import List, Dict, Tuple
 import os
+import sys  # <--- Adicionado
 
+# ---------- Função Auxiliar para Caminhos (Passo 2) ----------
+def resource_path(relative_path):
+    """ Retorna o caminho absoluto, funcionando em dev ou no PyInstaller """
+    try:
+        # PyInstaller cria uma pasta temporária em _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
+# -------------------------------------------------------------
 
 def read_role() -> str:
     """
     Lê o arquivo Roles.txt para determinar qual role usar
-    
-    Returns:
-        Nome da role (DPS, Support, Tank, AllRoles)
+    NOTA: Não usa resource_path pois é um arquivo editado pelo usuário/sistema externamente.
     """
     role_file = "Roles.txt"
     
@@ -44,12 +54,7 @@ def read_role() -> str:
 def read_playable_heroes(role: str) -> List[str]:
     """
     Lê o arquivo da role específica para obter os heróis jogáveis
-    
-    Args:
-        role: Nome da role (DPS, Support, Tank, AllRoles)
-    
-    Returns:
-        Lista com nomes dos heróis que o jogador usa
+    NOTA: Não usa resource_path pois é configuração do usuário.
     """
     role_file = f"{role}.txt"
     
@@ -62,9 +67,7 @@ def read_playable_heroes(role: str) -> List[str]:
 def read_lineup(filepath: str = "lineup.txt") -> Tuple[List[str], List[str]]:
     """
     Lê o arquivo lineup.txt e separa aliados e inimigos
-    
-    Returns:
-        Tuple contendo (aliados, inimigos)
+    NOTA: Não usa resource_path pois é gerado dinamicamente pelo comparar.py na pasta raiz.
     """
     with open(filepath, 'r', encoding='utf-8') as f:
         lines = [line.strip() for line in f.readlines()]
@@ -78,32 +81,33 @@ def read_lineup(filepath: str = "lineup.txt") -> Tuple[List[str], List[str]]:
 def read_heroes_ally_data(filepath: str = "heroes ally.xlsx") -> pd.DataFrame:
     """
     Lê o arquivo heroes ally.xlsx com os matchups de aliados
-    
-    Returns:
-        DataFrame com os dados de sinergia com aliados
     """
-    df = pd.read_excel(filepath, sheet_name=0, header=0)
+    # AQUI MUDOU: Usa resource_path pois assumimos que esta planilha é fixa e empacotada
+    final_path = resource_path(filepath)
+    df = pd.read_excel(final_path, sheet_name=0, header=0)
     return df
 
 
 def read_heroes_enemy_data(filepath: str = "heroes enemy.xlsx") -> pd.DataFrame:
     """
     Lê o arquivo heroes enemy.xlsx com os matchups contra inimigos
-    
-    Returns:
-        DataFrame com os dados de matchups contra inimigos
     """
-    df = pd.read_excel(filepath, sheet_name=0, header=0)
+    # AQUI MUDOU: Usa resource_path pois assumimos que esta planilha é fixa e empacotada
+    final_path = resource_path(filepath)
+    df = pd.read_excel(final_path, sheet_name=0, header=0)
     return df
 
 
 def read_winrate_data(filepath: str = "winrate.xlsx") -> Dict[str, float]:
     """
     Lê o arquivo winrate.xlsx e retorna dicionário {herói: winrate}
-    
-    Returns:
-        Dicionário com winrate de cada herói
+    NOTA: Não usa resource_path pois é gerado dinamicamente pelo retirarWinrate.py.
     """
+    # Verifica se o arquivo existe antes de tentar ler para evitar erro feio
+    if not os.path.exists(filepath):
+        # Se não existir (primeira vez rodando), retorna dict vazio
+        return {}
+
     df = pd.read_excel(filepath, sheet_name=0)
     # Coluna A: Nome do personagem, Coluna E: Winrate
     winrate_dict = {}
@@ -134,39 +138,27 @@ def calculate_hero_score(
 ) -> Dict[str, float]:
     """
     Calcula a pontuação de um herói jogável
-    
-    Args:
-        hero_name: Nome do herói a ser avaliado
-        ally_df: DataFrame com dados de sinergia (heroes ally.xlsx)
-        enemy_df: DataFrame com dados de matchups (heroes enemy.xlsx)
-        allies: Lista de aliados
-        enemies: Lista de inimigos
-        winrate_dict: Dicionário com winrates
-    
-    Returns:
-        Dicionário com enemy_score, ally_score, map_winrate e total
     """
     # Calcular Enemy Score
-    # Busca a linha do herói na primeira coluna do enemy_df
     enemy_score = 0.0
+    # Busca a linha do herói na primeira coluna do enemy_df
     hero_row_enemy = enemy_df[enemy_df.iloc[:, 0] == hero_name]
     
     if not hero_row_enemy.empty:
         for enemy in enemies:
-            # Busca a coluna do inimigo (primeira linha)
+            # Busca a coluna do inimigo
             if enemy in enemy_df.columns:
                 value = hero_row_enemy[enemy].values[0]
                 if pd.notna(value):
                     enemy_score += float(value)
     
     # Calcular Ally Score
-    # Busca a linha do herói na primeira coluna do ally_df
     ally_score = 0.0
     hero_row_ally = ally_df[ally_df.iloc[:, 0] == hero_name]
     
     if not hero_row_ally.empty:
         for ally in allies:
-            # Busca a coluna do aliado (primeira linha)
+            # Busca a coluna do aliado
             if ally in ally_df.columns:
                 value = hero_row_ally[ally].values[0]
                 if pd.notna(value):
@@ -231,13 +223,23 @@ def run_hero_ranking():
     print()
     
     # Ler dados
-    allies, enemies = read_lineup()
-    print(f"Aliados: {', '.join(allies)}")
-    print(f"Inimigos: {', '.join(enemies)}")
+    try:
+        allies, enemies = read_lineup()
+        print(f"Aliados: {', '.join(allies)}")
+        print(f"Inimigos: {', '.join(enemies)}")
+    except FileNotFoundError:
+        print("Arquivo 'lineup.txt' não encontrado. Rode a análise de imagem (TAB+1) primeiro.")
+        return
     print()
     
-    ally_df = read_heroes_ally_data()
-    enemy_df = read_heroes_enemy_data()
+    # Tratamento de erro caso os excels não existam
+    try:
+        ally_df = read_heroes_ally_data()
+        enemy_df = read_heroes_enemy_data()
+    except FileNotFoundError as e:
+        print(f"ERRO CRÍTICO: Não foi possível ler as planilhas de dados: {e}")
+        return
+
     winrate_dict = read_winrate_data()
     
     # Calcular pontuação para cada herói jogável
@@ -256,7 +258,5 @@ def run_hero_ranking():
     # Imprimir ranking
     print_ranking(rankings)
 
-
-# Execução automática quando o módulo é importado ou executado
 if __name__ == "__main__":
     run_hero_ranking()

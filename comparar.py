@@ -8,17 +8,33 @@ e escreve lineup.txt no diretório atual (onde está o código).
 import time
 from pathlib import Path
 import math
+import sys  # Adicionado
+import os   # Adicionado
 
 import cv2
 import numpy as np
 from PIL import Image
 
+# ---------- Função Auxiliar para Caminhos (Passo 2) ----------
+def resource_path(relative_path):
+    """ Retorna o caminho absoluto, funcionando em dev ou no PyInstaller """
+    try:
+        # PyInstaller cria uma pasta temporária em _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
+
 # CONFIGURAÇÃO
-templates_dir = Path("heroes")     # pasta com as 9 imagens de treino (42x42)
-watch_dir = Path("print")          # pasta que contém 0perk, 1perk, 2perk
+# MUDANÇA AQUI: Usamos resource_path para encontrar a pasta 'heroes' empacotada
+templates_dir = Path(resource_path("heroes"))     
+
+# A pasta 'print' continua relativa ao local de execução (não usa resource_path)
+watch_dir = Path("print")          
 perks_names = ["0perk", "1perk", "2perk"]
-output_filename = "lineup.txt"     # nome do arquivo a ser criado no diretório atual
-target_size = (42, 42)             # tamanho esperado das imagens/templates
+output_filename = "lineup.txt"     
+target_size = (42, 42)             
 
 # ---------- utilitários ----------
 def load_image_gray(path, target_size=None):
@@ -38,11 +54,15 @@ def normalized_mae(a, b):
 def load_templates(templates_dir, target_size=(42,42)):
     templates = []
     if not templates_dir.exists():
+        # Dica de debug caso esqueça de copiar a pasta no pyinstaller
+        print(f"ERRO CRÍTICO: Pasta de templates não encontrada em: {templates_dir}")
         raise RuntimeError(f"Pasta de templates não existe: {templates_dir}")
+    
     for p in sorted(templates_dir.iterdir()):
         if p.suffix.lower() in {".png", ".jpg", ".jpeg", ".bmp"}:
             arr = load_image_gray(p, target_size=target_size)
             templates.append((p.stem, arr))  # p.stem -> nome sem extensão
+            
     if not templates:
         raise RuntimeError(f"Nenhuma template encontrada em {templates_dir}")
     return templates
@@ -83,8 +103,12 @@ def process_folder(folder_path: Path, templates, target_size=(42,42)):
     return results
 
 # ---------- main ----------
-def main():
-    templates = load_templates(templates_dir, target_size=target_size)
+def executar():
+    try:
+        templates = load_templates(templates_dir, target_size=target_size)
+    except RuntimeError as e:
+        print(e)
+        return
 
     # construir lista de pastas a verificar (apenas as 3 perks)
     perk_paths = [watch_dir / name for name in perks_names]
@@ -92,6 +116,7 @@ def main():
     all_found_any = False
     folder_stats = []  # lista de dicts: {path, results, avg_score}
     for ppath in perk_paths:
+        # Verifica se a pasta existe antes de processar
         if not ppath.exists() or not ppath.is_dir():
             print(f"Pasta ausente (pulando): {ppath}")
             folder_stats.append({"path": ppath, "results": [], "avg_score": math.inf})
@@ -114,6 +139,7 @@ def main():
     best = min(folder_stats, key=lambda x: x["avg_score"])
     if best["avg_score"] == math.inf:
         # nenhuma imagem encontrada em nenhuma pasta: criar lineup.txt vazio no diretório atual
+        # ATENÇÃO: Output file usa Path.cwd() para salvar onde o usuário está rodando, não na pasta temp
         out_file = Path.cwd() / output_filename
         out_file.write_text("", encoding="utf-8")
         print(f"Nenhuma imagem encontrada em nenhuma pasta. Criei lineup.txt vazio em {out_file.resolve()}")
@@ -132,4 +158,4 @@ def main():
     print(f"Gravado {len(best_results)} linhas em {out_file.resolve()}")
 
 if __name__ == "__main__":
-    main()
+    executar()

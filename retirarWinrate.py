@@ -7,6 +7,8 @@ import sys
 import os
 from openpyxl import Workbook
 
+
+
 MAP_FILE = "map.txt"
 WINRATE_DIR = "winratemaps"
 OUTPUT_XLSX = "winrate.xlsx"
@@ -60,7 +62,7 @@ def parse_file(path):
 
     return num_map, str_map
 
-def main():
+def executar():
     INPUT_HTML1, INPUT_HTML2 = get_input_files()
 
     num1, str1 = parse_file(INPUT_HTML1)
@@ -106,6 +108,7 @@ def main():
 
     wb.save(OUTPUT_XLSX)
     print(f"OK — {len(names_sorted)} heróis salvos em '{OUTPUT_XLSX}'.")
+    
 
 if __name__ == "__main__":
-    main()
+    executar()

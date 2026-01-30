@@ -6,6 +6,8 @@ import unicodedata
 import json
 import os
 
+
+
 # Lista completa de heróis do Overwatch organizados por função
 HEROES = {
     "DPS": [
@@ -14,11 +16,11 @@ HEROES = {
         "Sombra", "Symmetra", "Torbjörn", "Tracer", "Vendetta", "Venture",
         "Widowmaker"
     ],
-    "Support": [
+    "SUP": [
         "Ana", "Baptiste", "Brigitte", "Illari", "Juno", "Kiriko",
         "Lifeweaver", "Lúcio", "Mercy", "Moira", "Wuyang", "Zenyatta"
     ],
-    "Tank": [
+    "TANK": [
         "DVa", "Doomfist", "Hazard", "Junker Queen", "Mauga", "Orisa",
         "Ramattra", "Reinhardt", "Roadhog", "Sigma", "Winston",
         "Wrecking Ball", "Zarya"
@@ -76,7 +78,7 @@ def save_heroes_to_files(heroes_list):
     heroes_list = list(dict.fromkeys(heroes_list))
     
     # Organiza os heróis por função
-    heroes_by_role = {"DPS": [], "Support": [], "Tank": []}
+    heroes_by_role = {"DPS": [], "SUP": [], "TANK": []}
     
     for hero in heroes_list:
         role = get_hero_role(hero)
@@ -84,13 +86,13 @@ def save_heroes_to_files(heroes_list):
             heroes_by_role[role].append(hero)
     
     # Salva cada função em seu arquivo correspondente
-    for role, filename in [("DPS", "DPS.txt"), ("Support", "Support.txt"), ("Tank", "Tank.txt")]:
+    for role, filename in [("DPS", "DPS.txt"), ("SUP", "SUP.txt"), ("TANK", "TANK.txt")]:
         with open(filename, 'w', encoding='utf-8') as f:
             if heroes_by_role[role]:
                 f.write('\n'.join(heroes_by_role[role]))
     
-    # Salva todos os heróis em AllRoles.txt
-    with open("AllRoles.txt", 'w', encoding='utf-8') as f:
+    # Salva todos os heróis em ALL.txt
+    with open("ALL.txt", 'w', encoding='utf-8') as f:
         if heroes_list:
             f.write('\n'.join(heroes_list))
 
@@ -145,7 +147,7 @@ def list_favorites():
     else:
         print("  Nenhum favorito")
 
-def main_menu():
+def executar():
     """Menu principal"""
     while True:
         print("\n1. Adicionar herói")
@@ -182,4 +184,4 @@ def main_menu():
             print("✗ Opção inválida")
 
 if __name__ == "__main__":
-    main_menu()
+    executar()

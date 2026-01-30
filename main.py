@@ -1,6 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
 import keyboard
 import time
 import threading
@@ -12,7 +9,7 @@ import os
 import choose_ow_hero
 import comparar
 import favoriteHero
-import map as map_script  # Renomeado para não conflitar com 'map' nativo do Python
+import map as map_script
 import retirarWinrate
 import roles
 import screenshot
@@ -21,11 +18,11 @@ import site_scrapper
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MAP_FILE = os.path.join(BASE_DIR, "map.txt")
 
-# Estado global indicando se estamos no "main" (menu) ou em outro script
-IN_MAIN = True
-_pipeline_hotkey_id = None  # id retornado por keyboard.add_hotkey
 
-# ---------- Menus ----------
+IN_MAIN = True # Bloqueia a main quando false
+_pipeline_hotkey_id = None  # se tiver valor = "TAB+1" ativo
+
+# Menus
 
 def print_main_menu():
     print(
@@ -42,26 +39,20 @@ def print_small_menu():
         "\n[2] Mapa  [3] Role  [4] Favoritos  [5] Atualizar Winrate  [6] Remover mapa\n"
     )
 
-# ---------- Pipelines ----------
+# Funções
 
 def run_pipeline():
     """ Executa o fluxo principal: Print -> Comparar -> Escolher Herói """
     try:
-        print(">>> Executando screenshot...")
+        print(">>> Capturando a tela...")
         screenshot.executar()
 
-        print(">>> Executando comparação...")
+        print(">>> Comparando os prints com os heróis do Overwatch...")
         comparar.executar()
 
         print(">>> Executando escolha de herói...")
-        if hasattr(choose_ow_hero, 'run_hero_ranking'):
-            choose_ow_hero.run_hero_ranking()
-        elif hasattr(choose_ow_hero, 'executar'):
-            choose_ow_hero.executar()
-        else:
-            print("Erro: Função principal não encontrada em choose_ow_hero.py")
+        choose_ow_hero.run_hero_ranking()
 
-        print("Pipeline finalizado.")
     except Exception as e:
         print(f"Erro no pipeline: {e}")
         import traceback
@@ -72,26 +63,24 @@ def run_pipeline():
 
 def run_site():
     try:
-        print(">>> Executando site_scraper.py (Scraper)...")
+        print(">>> Baixando a winrate de cada herói por mapa")
         site_scrapper.executar()
     except Exception as e:
-        print(f"Erro no site.py: {e}")
+        print(f"Erro no site_scrapper.py: {e}")
 
 def run_map():
     try:
-        print(">>> Executando map.py...")
         map_script.executar()
 
         print(">>> Retirando a winrate do mapa...")
         retirarWinrate.executar()
 
-        print("Pipeline 'map' finalizado.")
     except Exception as e:
         print(f"Erro no mapa: {e}")
 
 def run_role():
     try:
-        print(">>> Executando roles.py...")
+        print(">>> Qual a Role que está jogando?")
         roles.executar()
         print("Role atualizada.")
     except Exception as e:
@@ -99,14 +88,8 @@ def run_role():
 
 def run_favorite():
     try:
-        print(">>> Executando favoriteHero.py...")
-        if hasattr(favoriteHero, 'executar'):
-            favoriteHero.executar()
-        elif hasattr(favoriteHero, 'main_menu'):
-            favoriteHero.main_menu()
-        else:
-            print("Erro: Função não encontrada em favoriteHero.py")
-        print("Herói favorito atualizado.")
+        print(">>> Quais heróis quer adicionar ao sistema de pontuação?")
+        favoriteHero.executar()
     except Exception as e:
         print(f"Erro em favoritos: {e}")
 
@@ -114,45 +97,43 @@ def remove_map():
     if os.path.exists(MAP_FILE):
         try:
             os.remove(MAP_FILE)
-            print("map.txt removido com sucesso.")
+            print("mapa removido com sucesso.")
         except Exception as e:
             print(f"Erro ao remover arquivo: {e}")
     else:
-        print("Nenhum map.txt encontrado para remover.")
+        print("Nenhum mapa encontrado para remover.")
 
-# ---------- Threads e Inputs ----------
 
+# Função para não travar o teclado nem o input enquanto outro comando algo roda.
 def spawn_in_thread(func, *args, **kwargs):
     """Executa func em uma thread separada (daemon)"""
     t = threading.Thread(target=func, args=args, kwargs=kwargs, daemon=True)
     t.start()
     return t
 
-# ---------- Hook-based hotkey (mais resiliente) ----------
+# Hook-based hotkey (mais resiliente)
 
-_tab_pressed = False
+_tab_pressed = False # Diz se Tab está pressionado
 _use_hook_hotkey = True  # mude para False para desativar este método
 
-def _on_key_event(event):
+def _on_key_event(event): # Essa função é chamada para TODA tecla pressionada ou solta.
     global _tab_pressed, IN_MAIN
     # event.event_type é 'down' ou 'up'
     name = event.name
-    if name == 'tab':
+    if name == 'tab': # Marca se TAB está pressionado.
         _tab_pressed = (event.event_type == 'down')
-    elif name == '1' and event.event_type == 'down':
-        if _tab_pressed and IN_MAIN:
-            # evita reentrância: desativa o hook temporariamente
+    elif name == '1' and event.event_type == 'down': # Detecta o 1.
+        if _tab_pressed and IN_MAIN: # Só executa se TAB estiver pressionado e no menu principal
             try:
-                keyboard.unhook(_on_key_event)
+                keyboard.unhook(_on_key_event) # caso tenha spam de TAB+1
             except Exception:
                 pass
             print("[hotkey-hook] Detectado TAB+1 -> executando pipeline.")
             spawn_in_thread(run_pipeline)
-            # reativa hook com pequeno delay para evitar múltiplos triggers rápidos
             def rehook():
-                time.sleep(0.2)
+                time.sleep(0.2) # delay para reativar
                 try:
-                    keyboard.hook(_on_key_event)
+                    keyboard.hook(_on_key_event) #reativa
                 except Exception:
                     pass
             spawn_in_thread(rehook)
@@ -219,25 +200,19 @@ def _pipeline_callback():
 
 # ---------- Controle de Input ----------
 
-def call_and_pause_main(func, *args, **kwargs):
-    """
-    Chama func bloqueante (por exemplo módulos interativos). Enquanto ele executa:
-    - desativa o hotkey do pipeline (TAB+1)
-    - marca IN_MAIN = False (indicando que main está 'fora')
-    Ao terminar, reativa hotkey e retorna ao menu.
-    """
+def call_and_pause_main(func, *args, **kwargs): 
+    # Função que pausa a execução da main enquanto está em outro comando
+
     global IN_MAIN
-    # sinaliza que saímos do main
-    IN_MAIN = False
+    IN_MAIN = False # sinaliza que saímos do main
     disable_pipeline_hotkey()
     try:
         func(*args, **kwargs)
     finally:
         # voltamos ao main
-        IN_MAIN = True
+        IN_MAIN = True # Liga TAB+1 de novo
         enable_pipeline_hotkey()
-        print("\nRetornando ao menu principal.")
-        print_small_menu()
+        print_small_menu() # Volta menu
 
 def input_loop():
     print_main_menu()

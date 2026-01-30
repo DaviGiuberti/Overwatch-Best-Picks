@@ -1,10 +1,4 @@
 #!/usr/bin/env python3
-"""
-match_screenshots_perks.py
-
-Compara imagens nas pastas print/0perk, print/1perk, print/2perk com templates em 'heroes'
-e escreve lineup.txt no diretório atual (onde está o código).
-"""
 import time
 from pathlib import Path
 import math

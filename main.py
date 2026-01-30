@@ -116,45 +116,6 @@ def spawn_in_thread(func, *args, **kwargs):
 _tab_pressed = False # Diz se Tab está pressionado
 _use_hook_hotkey = True  # mude para False para desativar este método
 
-def _on_key_event(event): # Essa função é chamada para TODA tecla pressionada ou solta.
-    global _tab_pressed, IN_MAIN
-    # event.event_type é 'down' ou 'up'
-    name = event.name
-    if name == 'tab': # Marca se TAB está pressionado.
-        _tab_pressed = (event.event_type == 'down')
-    elif name == '1' and event.event_type == 'down': # Detecta o 1.
-        if _tab_pressed and IN_MAIN: # Só executa se TAB estiver pressionado e no menu principal
-            try:
-                keyboard.unhook(_on_key_event) # caso tenha spam de TAB+1
-            except Exception:
-                pass
-            print("[hotkey-hook] Detectado TAB+1 -> executando pipeline.")
-            spawn_in_thread(run_pipeline)
-            def rehook():
-                time.sleep(0.2) # delay para reativar
-                try:
-                    keyboard.hook(_on_key_event) #reativa
-                except Exception:
-                    pass
-            spawn_in_thread(rehook)
-
-def enable_pipeline_hotkey_hook():
-    global _use_hook_hotkey
-    _use_hook_hotkey = True
-    try:
-        keyboard.hook(_on_key_event)
-        print("[hotkey-hook] Hook ativado.")
-    except Exception as e:
-        print(f"[hotkey-hook] Erro ao ativar hook: {e}")
-
-def disable_pipeline_hotkey_hook():
-    global _use_hook_hotkey
-    _use_hook_hotkey = False
-    try:
-        keyboard.unhook(_on_key_event)
-        print("[hotkey-hook] Hook desativado.")
-    except Exception as e:
-        print(f"[hotkey-hook] Erro ao desativar hook: {e}")
 
 # ---------- Hotkey management (método add_hotkey original) ----------
 
@@ -162,7 +123,6 @@ def enable_pipeline_hotkey():
     """ Registra TAB+1 se ainda não estiver registrado """
     global _pipeline_hotkey_id
     if _use_hook_hotkey:
-        enable_pipeline_hotkey_hook()
         return
     
     if _pipeline_hotkey_id is None:
@@ -175,7 +135,6 @@ def disable_pipeline_hotkey():
     """ Remove o hotkey TAB+1 se estiver ativo """
     global _pipeline_hotkey_id
     if _use_hook_hotkey:
-        disable_pipeline_hotkey_hook()
         return
     
     if _pipeline_hotkey_id is not None:

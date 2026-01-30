@@ -1,33 +1,21 @@
-"""
-Módulo de ranking de heróis do Overwatch
-Calcula pontuação baseada em matchups contra inimigos, sinergia com aliados e winrate no mapa
-"""
-
 import pandas as pd
 from typing import List, Dict, Tuple
 import os
-import sys  # <--- Adicionado
+import sys
 
-# ---------- Função Auxiliar para Caminhos (Passo 2) ----------
+# Função "para executavel", mas tambem funciona no python normal
 def resource_path(relative_path):
-    """ Retorna o caminho absoluto, funcionando em dev ou no PyInstaller """
     try:
-        # PyInstaller cria uma pasta temporária em _MEIPASS
-        base_path = sys._MEIPASS
+        base_path = sys._MEIPASS # Só existe quando vira .exe e extrai os arquivos para um pasta temporaria e esta variavel anota o caminho
     except Exception:
         base_path = os.path.abspath(".")
 
-    return os.path.join(base_path, relative_path)
-# -------------------------------------------------------------
+    return os.path.join(base_path, relative_path) # Mostra o caminho final
 
-def read_role() -> str:
-    """
-    Lê o arquivo Roles.txt para determinar qual role usar
-    NOTA: Não usa resource_path pois é um arquivo editado pelo usuário/sistema externamente.
-    """
+def read_role() -> str: #Função que descobre qual role o usuario escolheu
     role_file = "Roles.txt"
     
-    if not os.path.exists(role_file):
+    if not os.path.exists(role_file): # Não achou o Roles.txt
         print("Arquivo 'Roles.txt' não encontrado!")
         print("Por favor, crie o arquivo e defina sua Role (DPS, Support, Tank ou AllRoles)")
         return None
@@ -35,16 +23,15 @@ def read_role() -> str:
     with open(role_file, 'r', encoding='utf-8') as f:
         role = f.read().strip()
     
-    if not role:
+    if not role: # Roles.txt vazio
         print("Arquivo 'Roles.txt' está vazio!")
         print("Por favor, defina sua Role (DPS, Support, Tank ou AllRoles)")
         return None
     
-    # Verifica se existe o arquivo correspondente
-    role_heroes_file = f"{role}.txt"
-    if not os.path.exists(role_heroes_file):
+    role_heroes_file = f"{role}.txt" # Pega o que tem dentro do Role.txt e encontra um arquivo com esse nome
+    if not os.path.exists(role_heroes_file): # Se não existir = erro
         print(f"Arquivo '{role_heroes_file}' não encontrado!")
-        print("Por favor, defina sua Role e Personagens Favoritos corretamente.")
+        print("Por favor, defina sua Role e Personagens Favoritos.")
         print("Roles disponíveis: DPS, Support, Tank, AllRoles")
         return None
     
@@ -52,60 +39,45 @@ def read_role() -> str:
 
 
 def read_playable_heroes(role: str) -> List[str]:
-    """
-    Lê o arquivo da role específica para obter os heróis jogáveis
-    NOTA: Não usa resource_path pois é configuração do usuário.
-    """
-    role_file = f"{role}.txt"
+
+    role_file = f"{role}.txt" # Lê os personagens favoritos da Role escolhida
     
     with open(role_file, 'r', encoding='utf-8') as f:
         heroes = [line.strip() for line in f.readlines() if line.strip()]
     
-    return heroes
+    return heroes # Retorna os personagens
 
 
-def read_lineup(filepath: str = "lineup.txt") -> Tuple[List[str], List[str]]:
-    """
-    Lê o arquivo lineup.txt e separa aliados e inimigos
-    NOTA: Não usa resource_path pois é gerado dinamicamente pelo comparar.py na pasta raiz.
-    """
+def read_lineup(filepath: str = "lineup.txt") -> Tuple[List[str], List[str]]: # Lê o time inimigo e aliado
     with open(filepath, 'r', encoding='utf-8') as f:
         lines = [line.strip() for line in f.readlines()]
     
-    allies = lines[:4]
-    enemies = lines[4:9]
+    allies = lines[:4] # 4 primeiros são aliados
+    enemies = lines[4:9] # 5 ultimos sao inimigos
     
-    return allies, enemies
+    return allies, enemies # Retorna os aliados e inimigos
 
-
+# Lê o arquivo heroes ally.xlsx com os matchups de aliados
 def read_heroes_ally_data(filepath: str = "heroes ally.xlsx") -> pd.DataFrame:
-    """
-    Lê o arquivo heroes ally.xlsx com os matchups de aliados
-    """
-    # AQUI MUDOU: Usa resource_path pois assumimos que esta planilha é fixa e empacotada
-    final_path = resource_path(filepath)
-    df = pd.read_excel(final_path, sheet_name=0, header=0)
+    final_path = resource_path(filepath) # resource_path acha o heroes ally.xlsx que é pré-definido
+    df = pd.read_excel(final_path, sheet_name=0, header=0) # primeira coluna = nome dos herois, outras colunas = matchups
     return df
 
-
+# Lê o arquivo heroes enemy.xlsx com os matchups de aliados
 def read_heroes_enemy_data(filepath: str = "heroes enemy.xlsx") -> pd.DataFrame:
-    """
-    Lê o arquivo heroes enemy.xlsx com os matchups contra inimigos
-    """
-    # AQUI MUDOU: Usa resource_path pois assumimos que esta planilha é fixa e empacotada
-    final_path = resource_path(filepath)
-    df = pd.read_excel(final_path, sheet_name=0, header=0)
+    final_path = resource_path(filepath) # resource_path acha o heroes enemy.xlsx que é pré-definido
+    df = pd.read_excel(final_path, sheet_name=0, header=0) # primeira coluna = nome dos herois, outras colunas = matchups
     return df
 
 
 def read_winrate_data(filepath: str = "winrate.xlsx") -> Dict[str, float]:
-    """
-    Lê o arquivo winrate.xlsx e retorna dicionário {herói: winrate}
-    NOTA: Não usa resource_path pois é gerado dinamicamente pelo retirarWinrate.py.
-    """
-    # Verifica se o arquivo existe antes de tentar ler para evitar erro feio
+    "Lê o arquivo winrate.xlsx e retorna dicionário {herói: winrate}"
+    "Não usa resource_path pois winrate.xlsx é gerado dinamicamente"
+    # Verifica se o arquivo existe antes de tentar ler para evitar erro
     if not os.path.exists(filepath):
-        # Se não existir (primeira vez rodando), retorna dict vazio
+        # Se não existir, retorna dict vazio
+        print('Nenhum mapa será somado a pontuação final')
+        print('Selecione um mapa ou atualize as winrates')
         return {}
 
     df = pd.read_excel(filepath, sheet_name=0)
@@ -117,7 +89,7 @@ def read_winrate_data(filepath: str = "winrate.xlsx") -> Dict[str, float]:
         winrate_value = row.iloc[4]  # Coluna E
         
         if pd.notna(hero_name) and pd.notna(winrate_value):
-            # Converter valor para string e trocar vírgula por ponto (formato brasileiro)
+            # Converter valor para string e trocar vírgula por ponto
             winrate_str = str(winrate_value).replace(',', '.')
             try:
                 winrate_dict[str(hero_name).strip()] = float(winrate_str)
@@ -150,10 +122,11 @@ def calculate_hero_score(
             if enemy in enemy_df.columns:
                 value = hero_row_enemy[enemy].values[0]
                 if pd.notna(value):
-                    enemy_score += float(value)
+                    enemy_score += float(value) # Para cada inimigo detectado soma a matchup
     
     # Calcular Ally Score
     ally_score = 0.0
+    # Busca a linha do herói na primeira coluna do ally_df
     hero_row_ally = ally_df[ally_df.iloc[:, 0] == hero_name]
     
     if not hero_row_ally.empty:
@@ -162,10 +135,10 @@ def calculate_hero_score(
             if ally in ally_df.columns:
                 value = hero_row_ally[ally].values[0]
                 if pd.notna(value):
-                    ally_score += float(value)
+                    ally_score += float(value) # Para cada aliado detectado soma a matchup
     
     # Buscar Map Winrate
-    map_winrate = winrate_dict.get(hero_name, 0.0)
+    map_winrate = winrate_dict.get(hero_name, 0.0) # Busca o herói e retira a winrate
     
     # Calcular Total
     total_score = enemy_score + ally_score + map_winrate

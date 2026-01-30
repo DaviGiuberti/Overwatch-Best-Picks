@@ -172,15 +172,15 @@ def input_loop():   # função em loop
         if not cmd:
             continue
 
-        if cmd == "2":
+        if cmd.endswith("2"):
             call_and_pause_main(run_map)
-        elif cmd == "3":
+        elif cmd.endswith("3"):
             call_and_pause_main(run_role)
-        elif cmd in ("4", "favorite", "fav"):
+        elif cmd.endswith("4", "favorite", "fav"):
             call_and_pause_main(run_favorite)
-        elif cmd == "5":
+        elif cmd.endswith("5"):
             call_and_pause_main(run_site)
-        elif cmd == "6":
+        elif cmd.endswith("6"):
             # remover mapa é imediato, não precisa 'pausar' longa execução,
             # mas vamos mantê-lo sincronizado com o fluxo de pausa/remissão
             call_and_pause_main(remove_map)

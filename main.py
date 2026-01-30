@@ -202,9 +202,9 @@ if __name__ == "__main__":
     # Inicialmente estamos no menu principal
     IN_MAIN = True
     enable_pipeline_hotkey_hook()  # registra TAB+1
-    # Iniciar Thread de Input (rodando o input() em thread para que hotkey global funcione)
+    # Desta maneira o "TAB+1" e os comandos podem funcionar simultaneamente
     input_thread = threading.Thread(target=input_loop, daemon=True)
-    input_thread.start() # Desta maneira o "TAB+1" e os comandos podem funcionar simultaneamente
+    input_thread.start()
 
     print("="*50)
     print(" PROGRAMA INICIADO")

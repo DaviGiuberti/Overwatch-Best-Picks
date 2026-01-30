@@ -176,7 +176,7 @@ def input_loop():   # função em loop
             call_and_pause_main(run_map)
         elif cmd.endswith("3"):
             call_and_pause_main(run_role)
-        elif cmd.endswith("4", "favorite", "fav"):
+        elif cmd.endswith("4"):
             call_and_pause_main(run_favorite)
         elif cmd.endswith("5"):
             call_and_pause_main(run_site)

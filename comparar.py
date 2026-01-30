@@ -1,114 +1,108 @@
-#!/usr/bin/env python3
 import time
 from pathlib import Path
 import math
-import sys  # Adicionado
-import os   # Adicionado
-
+import sys 
+import os 
 import cv2
 import numpy as np
 from PIL import Image
 
-# ---------- Função Auxiliar para Caminhos (Passo 2) ----------
+# Função "para executavel", mas tambem funciona no python normal
 def resource_path(relative_path):
-    """ Retorna o caminho absoluto, funcionando em dev ou no PyInstaller """
     try:
-        # PyInstaller cria uma pasta temporária em _MEIPASS
-        base_path = sys._MEIPASS
+        base_path = sys._MEIPASS # Só existe quando vira .exe e extrai os arquivos para um pasta temporaria e esta variavel anota o caminho
     except Exception:
         base_path = os.path.abspath(".")
 
-    return os.path.join(base_path, relative_path)
-
-# CONFIGURAÇÃO
-# MUDANÇA AQUI: Usamos resource_path para encontrar a pasta 'heroes' empacotada
-templates_dir = Path(resource_path("heroes"))     
+    return os.path.join(base_path, relative_path) # Mostra o caminho final
+ 
+templates_dir = Path(resource_path("heroes")) # Pasta empacatoda onde estão os templates de heróis, usamos resource_path
 
 # A pasta 'print' continua relativa ao local de execução (não usa resource_path)
-watch_dir = Path("print")          
+watch_dir = Path("print")
 perks_names = ["0perk", "1perk", "2perk"]
-output_filename = "lineup.txt"     
+output_filename = "lineup.txt"
 target_size = (42, 42)             
 
-# ---------- utilitários ----------
-def load_image_gray(path, target_size=None):
-    """Carrega imagem, converte pra grayscale e retorna array float32."""
+# Carrega uma imagem e transforma em matriz numérica.
+def load_image_gray(path, target_size=None): #abre a imagem e converte pra grayscale
     img = Image.open(path).convert("L")
     if target_size is not None:
-        img = img.resize(target_size, Image.NEAREST)
-    arr = np.asarray(img, dtype=np.float32)
+        img = img.resize(target_size, Image.NEAREST) # redimensiona para 42x42 (os icons foram printados nessa resolução)
+    arr = np.asarray(img, dtype=np.float32) #converte a imagem em vetor de float
     return arr
 
+# Calcula o erro médio absoluto entre duas imagens.
 def normalized_mae(a, b):
-    """Mean Absolute Error normalizado entre 0 e 1 (divide por 255)."""
     mae = np.mean(np.abs(a - b))
     return mae / 255.0
 
-# ---------- carregar templates ----------
+# Carrega todas as imagens de heróis da pasta heroes.
 def load_templates(templates_dir, target_size=(42,42)):
     templates = []
     if not templates_dir.exists():
         # Dica de debug caso esqueça de copiar a pasta no pyinstaller
-        print(f"ERRO CRÍTICO: Pasta de templates não encontrada em: {templates_dir}")
+        print(f"ERRO CRÍTICO: Pasta de templates não encontrada em: {templates_dir}") # Se a pasta não existir → erro crítico.
         raise RuntimeError(f"Pasta de templates não existe: {templates_dir}")
     
-    for p in sorted(templates_dir.iterdir()):
-        if p.suffix.lower() in {".png", ".jpg", ".jpeg", ".bmp"}:
+    for p in sorted(templates_dir.iterdir()): # Itera por todos os arquivos da pasta.
+        if p.suffix.lower() in {".png", ".jpg", ".jpeg", ".bmp"}: # Filtra só imagens.
             arr = load_image_gray(p, target_size=target_size)
-            templates.append((p.stem, arr))  # p.stem -> nome sem extensão
+            templates.append((p.stem, arr))  # p.stem -> nome sem extensão. Guarda nome do heroi e imagem em forma de array
             
-    if not templates:
+    if not templates: # Garante que pelo menos uma template foi carregada.
         raise RuntimeError(f"Nenhuma template encontrada em {templates_dir}")
     return templates
 
-# ---------- comparar uma imagem com as templates ----------
+# Compara com todas as templates e escolhe a mais parecida
 def find_best_match(img_arr, templates):
     best_name = None
-    best_score = 1.0  # menor é melhor (MAE normalizado)
-    for name, tpl in templates:
-        if tpl.shape != img_arr.shape:
+    best_score = 1.0  # Score começa no pior valor possível.
+    for name, tpl in templates: # Testa contra cada herói.
+        if tpl.shape != img_arr.shape: # Garante que as imagens têm o mesmo tamanho.
             tpl_r = cv2.resize(tpl, (img_arr.shape[1], img_arr.shape[0]), interpolation=cv2.INTER_NEAREST)
         else:
             tpl_r = tpl
-        score = normalized_mae(img_arr, tpl_r)
-        if score < best_score:
+        score = normalized_mae(img_arr, tpl_r) # Calcula erro.
+        if score < best_score: # Se achou algo melhor, atualiza o melhor resultado
             best_score = score
             best_name = name
     return best_name, best_score
 
-# ---------- processa uma pasta específica ----------
+# Analisa todas as imagens recortadas que foram printadas no jogo.
 def process_folder(folder_path: Path, templates, target_size=(42,42)):
     folder_path.mkdir(parents=True, exist_ok=True)
-    # coleta arquivos de imagem na pasta (ordenados por data de modificação)
+    # Lista apenas imagens.
     files = [p for p in folder_path.iterdir() if p.suffix.lower() in {".png", ".jpg", ".jpeg", ".bmp"}]
-    files = sorted(files, key=lambda x: x.stat().st_mtime)
+    files = sorted(files, key=lambda x: x.stat().st_mtime) # ordena por data de modificação.
 
     results = []  # lista de tuples (input_filename, matched_name, score)
-    for p in files:
-        time.sleep(0.02)
+    for p in files: 
+        time.sleep(0.02) # evita acesso agressivo ao disco
         try:
             img = load_image_gray(p, target_size=target_size)
         except Exception as e:
             print(f"Falha ao abrir {p}: {e}  -> pulando")
             continue
-        best_name, best_score = find_best_match(img, templates)
-        results.append((p.name, best_name, best_score))
-        print(f"[{folder_path.name}] {p.name} -> {best_name} (score={best_score:.4f})")
+        best_name, best_score = find_best_match(img, templates) # descobre qual herói essa imagem representa.
+        results.append((p.name, best_name, best_score)) # guarda o resultado.
+        #print(f"[{folder_path.name}] {p.name} -> {best_name} (score={best_score:.4f})")
     return results
 
-# ---------- main ----------
+# main
 def executar():
     try:
-        templates = load_templates(templates_dir, target_size=target_size)
+        templates = load_templates(templates_dir, target_size=target_size) # Se falhar, aborta
     except RuntimeError as e:
         print(e)
         return
 
-    # construir lista de pastas a verificar (apenas as 3 perks)
+    # cria lista de pastas
     perk_paths = [watch_dir / name for name in perks_names]
 
-    all_found_any = False
     folder_stats = []  # lista de dicts: {path, results, avg_score}
+    # processa imagens e calcula média do score
+    # a com melhor media, quer dizer que é a pasta que os herois estão recortados de maneira correta
     for ppath in perk_paths:
         # Verifica se a pasta existe antes de processar
         if not ppath.exists() or not ppath.is_dir():
@@ -118,7 +112,6 @@ def executar():
 
         results = process_folder(ppath, templates, target_size=target_size)
         if results:
-            all_found_any = True
             scores = [r[2] for r in results]
             avg = float(np.mean(scores)) if scores else math.inf
         else:
@@ -129,10 +122,9 @@ def executar():
         else:
             print(f" -> nenhuma imagem em {ppath}")
 
-    # decidir qual pasta teve o melhor (menor) avg_score
+    # escolhe a pasta com menor erro médio.
     best = min(folder_stats, key=lambda x: x["avg_score"])
-    if best["avg_score"] == math.inf:
-        # nenhuma imagem encontrada em nenhuma pasta: criar lineup.txt vazio no diretório atual
+    if best["avg_score"] == math.inf: # caso nenhuma imagem exista, cria lineup.txt vazio
         # ATENÇÃO: Output file usa Path.cwd() para salvar onde o usuário está rodando, não na pasta temp
         out_file = Path.cwd() / output_filename
         out_file.write_text("", encoding="utf-8")
@@ -144,7 +136,7 @@ def executar():
 
     # escreve lineup.txt no diretório atual (não na pasta vencedora)
     out_file = Path.cwd() / output_filename
-    with open(out_file, "w", encoding="utf-8") as f:
+    with open(out_file, "w", encoding="utf-8") as f: # escrever lineup.txt, salva apenas os nomes dos heróis, um por linha.
         for input_filename, matched_name, score in best_results:
             f.write(f"{matched_name}\n")
 

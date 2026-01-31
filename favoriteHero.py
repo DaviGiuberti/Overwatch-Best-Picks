@@ -132,6 +132,50 @@ def list_favorites():
     else:
         print("  Nenhum favorito")
 
+# Adiciona em lote uma função inteira ou todos os heróis
+def add_role_or_all():
+    role_key = add_role_or_all_menu()
+    if not role_key:
+        print("✗ Função não reconhecida")
+        return False
+    if role_key == "ALL":
+        to_add = get_all_heroes()
+    else:
+        to_add = HEROES.get(role_key, [])
+    if not to_add:
+        print("✗ Nenhum herói para adicionar nessa função")
+        return False
+    favorites = load_favorites()
+    added = []
+    for h in to_add:
+        if h not in favorites:
+            favorites.append(h)
+            added.append(h)
+    if added:
+        save_heroes_to_files(favorites)
+        print(f"✓ {len(added)} herói(s) adicionados: {', '.join(added)}")
+    else:
+        print("✗ Todos já estavam nos favoritos")
+    return True
+
+# Menu para adicionar em lote uma função inteira ou todos os heróis
+def add_role_or_all_menu():
+    print("\nEscolha a função para adicionar:")
+    print("  1 - DPS")
+    print("  2 - Suporte")
+    print("  3 - Tanque")
+    print("  4 - Todos os personagens")
+    sub = input("\n> ").strip()
+    if sub == '1':
+        return 'DPS'
+    elif sub == '2':
+        return 'SUP'
+    elif sub == '3':
+        return 'TANK'
+    elif sub == '4':
+        return 'ALL'
+    return None
+
 # Main
 def executar():
     all_heroes = get_all_heroes()
@@ -142,7 +186,8 @@ def executar():
         print("\n1. Adicionar herói")
         print("2. Remover herói")
         print("3. Ver favoritos")
-        print("4. Sair")
+        print("4. Adicionar função inteira inteira")
+        print("5. Sair")
         
         choice = input("\nOpção: ").strip()
         
@@ -156,7 +201,7 @@ def executar():
         
         elif choice == "2":
             user_input = input("Herói: ").strip()
-            match = find_best_match(user_input)
+            match = find_best_match(user_input, normalized_heroes)
             if match:
                 remove_favorite(match)
             else:
@@ -165,8 +210,9 @@ def executar():
         elif choice == "3":
             print("\nFavoritos:")
             list_favorites()
-        
-        elif choice == "4":
+        elif choice == '4':
+            add_role_or_all()
+        elif choice == "5":
             break
         
         else:

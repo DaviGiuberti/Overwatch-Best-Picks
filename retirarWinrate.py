@@ -1,6 +1,3 @@
-#!/usr/bin/env python3
-# extract_winrates_two_files.py
-
 import re
 import html
 import sys
@@ -23,12 +20,12 @@ def get_input_files():
         with open(MAP_FILE, "r", encoding="utf-8") as f:
             map_name = f.read().strip()
     except FileNotFoundError:
-        print(f"Erro: '{MAP_FILE}' não encontrado.")
-        sys.exit(1)
+        print(f"Erro: '{MAP_FILE}' não encontrado. Escolha um mapa")
+        return None, None
 
     if not map_name:
-        print("Erro: 'map.txt' está vazio.")
-        sys.exit(1)
+        print("Erro: 'map.txt' está vazio. Escolha um mapa")
+        return None, None
 
     html_master = os.path.join(WINRATE_DIR, f"{map_name}_Master.html")
     html_grandmaster = os.path.join(WINRATE_DIR, f"{map_name}_Grandmaster.html")
@@ -40,8 +37,8 @@ def parse_file(path):
         with open(path, "r", encoding="utf-8") as f:
             raw = f.read()
     except FileNotFoundError:
-        print(f"Erro: '{path}' não encontrado.")
-        sys.exit(1)
+        print(f"Erro: '{path}' não encontrado. Atualize as winrates")
+        return None, None
 
     text = html.unescape(raw)
     num_map = {}
@@ -65,8 +62,14 @@ def parse_file(path):
 def executar():
     INPUT_HTML1, INPUT_HTML2 = get_input_files()
 
+    if not INPUT_HTML1 or not INPUT_HTML2:
+        return 
+
     num1, str1 = parse_file(INPUT_HTML1)
     num2, str2 = parse_file(INPUT_HTML2)
+
+    if num1 is None or num2 is None:
+        return
 
     names_sorted = sorted(
         set(num1.keys()) | set(num2.keys()),
@@ -74,8 +77,9 @@ def executar():
     )
 
     if not names_sorted:
-        print("Nenhuma winrate encontrada nos arquivos.")
-        sys.exit(0)
+        print("Nenhuma winrate encontrada nos arquivos. Atualize as winrates.")
+        return
+
 
     wb = Workbook()
     ws = wb.active

@@ -36,7 +36,7 @@ def executar():
         base_dir = os.path.dirname(__file__) if '__file__' in globals() else os.getcwd()
         role_path = "Roles.txt"
         if not os.path.exists(role_path):
-            print("Roles.txt não encontrado — serão feitos todos os recortes.")
+            print("Role não encontrada. Escolha a sua Função")
             return None
         try:
             with open(role_path, "r", encoding="utf-8") as f:
@@ -44,10 +44,10 @@ def executar():
                     line = line.strip()
                     if line:
                         role = line.upper()
-                        print(f"Role lido de Roles.txt: '{role}'")
+                        print(f"Função: '{role}'")
                         return role
         except Exception as e:
-            print(f"Erro ao ler Roles.txt: {e}. Continuando com todos os recortes.")
+            print(f"Erro ao ler Roles.txt: {e}.")
         return None
 
     role = read_role()
@@ -68,26 +68,23 @@ def executar():
         # nenhum skip (Roles.txt ausente ou erro)
         pass
 
-    if skip_files:
-        print("Arquivos que serão pulados e deletados conforme Role.txt:", ", ".join(sorted(skip_files)))
-
     # 1) capturar a tela do monitor principal e salvar em print/full.png
     with mss.mss() as sct:
         monitor_index = 1 if len(sct.monitors) > 1 else 0
         monitor = sct.monitors[monitor_index]
-        print(f"Usando monitor {monitor_index}: {monitor}")
+        # print(f"Usando monitor {monitor_index}: {monitor}")
 
         sct_img = sct.grab(monitor)
         full_img = Image.frombytes('RGB', sct_img.size, sct_img.rgb)
         full_w, full_h = full_img.size
         full_path = os.path.join(outdir, "full.png")
         full_img.save(full_path)
-        print(f"Full screenshot salva em: {full_path} (resolução detectada: {full_w}x{full_h})")
+        # print(f"Full screenshot salva em: {full_path} (resolução detectada: {full_w}x{full_h})")
 
     # calcular fatores de escala (do base 1280x720 -> resolução atual)
     scale_x = full_w / BASE_W
     scale_y = full_h / BASE_H
-    print(f"Fatores de escala -> x: {scale_x:.4f}, y: {scale_y:.4f}")
+    # print(f"Fatores de escala -> x: {scale_x:.4f}, y: {scale_y:.4f}")
 
     # função helper para converter e limitar coordenadas
     def scale_and_clamp(left_base, top_base, width_base, height_base, img_w, img_h):
@@ -114,7 +111,7 @@ def executar():
                 if os.path.exists(fpath):
                     try:
                         os.remove(fpath)
-                        print(f"Deletado: {fpath}")
+                        #print(f"Deletado: {fpath}")
                     except Exception as e:
                         print(f"Falha ao deletar {fpath}: {e}")
 

@@ -50,7 +50,7 @@ def read_role() -> str: #Função que descobre qual role o usuario escolheu
     role_heroes_file = f"{role}.txt" # Pega o que tem dentro do Role.txt e encontra um arquivo com esse nome
     if not os.path.exists(role_heroes_file): # Se não existir = erro
         print(f"Arquivo '{role_heroes_file}' não encontrado!")
-        print("Por favor, defina seus Personagens Favoritos.")  1
+        print("Por favor, defina seus Personagens Favoritos.")
         return None
     
     return role

@@ -69,12 +69,13 @@ def run_site():
 def run_map():
     try:
         map_script.executar()
-
-        print(">>> Retirando a winrate do mapa...")
-        retirarWinrate.executar()
-
     except Exception as e:
         print(f"Erro no mapa: {e}")
+    try:
+        print(">>> Retirando a winrate do mapa...")
+        retirarWinrate.executar()
+    except RuntimeError as e:
+        print("")
 
 def run_role():
     try:

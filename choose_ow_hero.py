@@ -137,7 +137,6 @@ def calculate_hero_score(
                 if pd.notna(value):
                     ally_score += float(value) # Para cada aliado detectado soma a matchup
     
-    # Buscar Map Winrate
     map_winrate = winrate_dict.get(hero_name, 0.0) # Busca o herói e retira a winrate
     
     # Calcular Total

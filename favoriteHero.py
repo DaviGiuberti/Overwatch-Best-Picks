@@ -179,7 +179,7 @@ def add_role_or_all_menu():
 # Main
 def executar():
     all_heroes = get_all_heroes()
-    # Normaliza todos os personagens
+    # Normaliza todos os personagens, para o find_best_match
     normalized_heroes = {normalize_text(hero): hero for hero in all_heroes}
 
     while True:

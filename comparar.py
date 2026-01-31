@@ -134,7 +134,7 @@ def executar():
     best_path = best["path"]
     best_results = best["results"]
 
-    # escreve lineup.txt no diretório atual (não na pasta vencedora)
+    # escreve lineup.txt no diretório atual (não na resource_path)
     out_file = Path.cwd() / output_filename
     with open(out_file, "w", encoding="utf-8") as f: # escrever lineup.txt, salva apenas os nomes dos heróis, um por linha.
         for input_filename, matched_name, score in best_results:

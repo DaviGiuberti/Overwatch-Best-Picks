@@ -133,7 +133,7 @@ def calculate_hero_score(
         for ally in allies:
             # Busca a coluna do aliado
             if ally in ally_df.columns:
-                value = hero_row_ally[ally].values[0]
+                value = hero_row_ally[ally].values[0] * 0.65
                 if pd.notna(value):
                     ally_score += float(value) # Para cada aliado detectado soma a matchup
     

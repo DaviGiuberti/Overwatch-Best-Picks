@@ -85,7 +85,7 @@ def executar():
     ws["B1"] = "Winrate Master"
     ws["C1"] = "Winrate Grandmaster"
     ws["D1"] = "Average"
-    ws["E1"] = "Saida (0,2*avg - 10) * 4"
+    ws["E1"] = "Saida (0,2*avg - 10) * 3"
 
     row = 2
     for name in names_sorted:
@@ -101,7 +101,7 @@ def executar():
             avg = (num1[name] + num2[name]) / 2
             ws.cell(row=row, column=4, value=f"{avg:.2f}".replace(".", ","))
 
-            saida = (0.2 * avg - 10.0) * 2
+            saida = (0.2 * avg - 10.0) * 3
             ws.cell(row=row, column=5, value=f"{saida:.2f}".replace(".", ","))
 
         row += 1

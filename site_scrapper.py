@@ -40,9 +40,9 @@ def executar():
         "New Queen Street",
         "Runasapi",
         # Flashpoint
-        "Aatlis"
-        "New Junk City"
-        "Suravasa"
+        "Aatlis",
+        "New Junk City",
+        "Suravasa",
     ]
 
     # tiers que você tinha antes (adicione/remova se quiser)
@@ -84,7 +84,7 @@ def executar():
 
                 url = (
                     "https://overwatch.blizzard.com/en-us/rates/"
-                    f"?input=PC&map={map_param}&region=Americas&role=Damage&rq=1&tier={tier}"
+                    f"?input=PC&map={map_param}&region=Americas&role=Damage&rq=2&tier={tier}"
                 )
                 try:
                     print(f"Obtendo: {url}")

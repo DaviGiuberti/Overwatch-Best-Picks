@@ -37,10 +37,10 @@ MAPS = [
     "Colosseo",
     "Esperança",
     "New Queen Street",
-    "Runasapi"
+    "Runasapi",
     # Flashpoint
-    "Aatlis"
-    "New Junk City"
+    "Aatlis",
+    "New Junk City",
     "Suravasa"
 ]
 

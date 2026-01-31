@@ -3,6 +3,25 @@ from typing import List, Dict, Tuple
 import os
 import sys
 
+def print_map():
+    # Caminho do arquivo map.txt
+    map_path = "map.txt"
+    if not os.path.exists(map_path):
+        # Se não existir, retorna dict vazio
+        return {}
+
+    # Abre e lê o arquivo
+    with open(map_path, "r", encoding="utf-8") as arquivo:
+        texto = arquivo.read().strip()
+
+    # Substitui "-" por espaço
+    texto = texto.replace("-", " ")
+
+    # Coloca a primeira letra de cada palavra em maiúscula
+    texto = texto.title()
+    print('Mapa selecionado: ' '{texto}')
+    return texto
+
 # Função "para executavel", mas tambem funciona no python normal
 def resource_path(relative_path):
     try:
@@ -17,7 +36,7 @@ def read_role() -> str: #Função que descobre qual role o usuario escolheu
     
     if not os.path.exists(role_file): # Não achou o Roles.txt
         print("Arquivo 'Roles.txt' não encontrado!")
-        print("Por favor, crie o arquivo e defina sua Role (DPS, Support, Tank ou AllRoles)")
+        print("Por favor, defina sua Role (DPS, Support, Tank ou AllRoles)")
         return None
     
     with open(role_file, 'r', encoding='utf-8') as f:
@@ -31,8 +50,7 @@ def read_role() -> str: #Função que descobre qual role o usuario escolheu
     role_heroes_file = f"{role}.txt" # Pega o que tem dentro do Role.txt e encontra um arquivo com esse nome
     if not os.path.exists(role_heroes_file): # Se não existir = erro
         print(f"Arquivo '{role_heroes_file}' não encontrado!")
-        print("Por favor, defina sua Role e Personagens Favoritos.")
-        print("Roles disponíveis: DPS, Support, Tank, AllRoles")
+        print("Por favor, defina seus Personagens Favoritos.")  1
         return None
     
     return role
@@ -69,10 +87,8 @@ def read_heroes_enemy_data(filepath: str = "heroes enemy.xlsx") -> pd.DataFrame:
     df = pd.read_excel(final_path, sheet_name=0, header=0) # primeira coluna = nome dos herois, outras colunas = matchups
     return df
 
-
+# Lê o arquivo winrate.xlsx e retorna dicionário {herói: winrate}
 def read_winrate_data(filepath: str = "winrate.xlsx") -> Dict[str, float]:
-    "Lê o arquivo winrate.xlsx e retorna dicionário {herói: winrate}"
-    "Não usa resource_path pois winrate.xlsx é gerado dinamicamente"
     # Verifica se o arquivo existe antes de tentar ler para evitar erro
     if not os.path.exists(filepath):
         # Se não existir, retorna dict vazio
@@ -176,7 +192,6 @@ def print_ranking(rankings: List[Dict[str, float]]) -> None:
     
     print("-" * 70)
 
-
 def run_hero_ranking():
     """
     Função principal que executa todo o processo de ranking
@@ -211,6 +226,8 @@ def run_hero_ranking():
     except FileNotFoundError as e:
         print(f"ERRO CRÍTICO: Não foi possível ler as planilhas de dados: {e}")
         return
+    
+    mapa_formatado = print_map()
 
     winrate_dict = read_winrate_data()
     

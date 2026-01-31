@@ -1,12 +1,6 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
 from difflib import get_close_matches
 import unicodedata
-import json
 import os
-
-
 
 # Lista completa de heróis do Overwatch organizados por função
 HEROES = {
@@ -27,44 +21,44 @@ HEROES = {
     ]
 }
 
-FAVORITES_FILE = "favorites.json"
+FAVORITES_FILE = "ALL.txt"  # Agora ALL.txt é o arquivo de favoritos
 
+# Remove acentos, converte para minusculo e remove espaços extras. Ajuda no find_best_match
 def normalize_text(text):
-    """Remove acentos e normaliza o texto para comparação"""
     nfkd = unicodedata.normalize('NFKD', text)
     text_no_accents = ''.join([c for c in nfkd if not unicodedata.combining(c)])
     return text_no_accents.lower().strip()
 
+# Cria uma lista com todos os heróis, independente da função.
 def get_all_heroes():
-    """Retorna lista com todos os heróis"""
     all_heroes = []
     for role_heroes in HEROES.values():
         all_heroes.extend(role_heroes)
     return all_heroes
 
+# Descobre se o herói digitado é DPS, SUP ou TANK.
 def get_hero_role(hero_name):
-    """Retorna a função (role) de um herói"""
     for role, heroes in HEROES.items():
         if hero_name in heroes:
             return role
     return None
 
+# Encontra o herói que mais se parece com a entrada do usuário
 def find_best_match(user_input):
-    """Encontra o herói que mais se parece com a entrada do usuário"""
-    if not user_input.strip():
+    if not user_input.strip(): #entrada vazia sai
         return None
     
-    normalized_input = normalize_text(user_input)
+    normalized_input = normalize_text(user_input) # Normalização
     all_heroes = get_all_heroes()
     
-    # Cria versões normalizadas dos heróis para comparação
+    # Normaliza todos os personagens
     normalized_heroes = {normalize_text(hero): hero for hero in all_heroes}
     
-    # Tenta encontrar correspondências exatas primeiro (ignorando case e acentos)
+    # Tenta encontrar correspondências exatas primeiro
     if normalized_input in normalized_heroes:
         return normalized_heroes[normalized_input]
     
-    # Usa fuzzy matching para encontrar a melhor correspondência
+    # Encontra a melhor correspondencia com um cutoff de 0.4
     matches = get_close_matches(normalized_input, normalized_heroes.keys(), n=1, cutoff=0.4)
     
     if matches:
@@ -72,8 +66,8 @@ def find_best_match(user_input):
     
     return None
 
+#Salva os heróis nos arquivos apropriados baseado em suas funções
 def save_heroes_to_files(heroes_list):
-    """Salva os heróis nos arquivos apropriados baseado em suas funções"""
     # Remove duplicatas mantendo a ordem
     heroes_list = list(dict.fromkeys(heroes_list))
     
@@ -87,58 +81,56 @@ def save_heroes_to_files(heroes_list):
     
     # Salva cada função em seu arquivo correspondente
     for role, filename in [("DPS", "DPS.txt"), ("SUP", "SUP.txt"), ("TANK", "TANK.txt")]:
+        # abre em 'w' para sobrescrever; se não houver heróis para a role, cria arquivo vazio
         with open(filename, 'w', encoding='utf-8') as f:
             if heroes_by_role[role]:
                 f.write('\n'.join(heroes_by_role[role]))
     
-    # Salva todos os heróis em ALL.txt
-    with open("ALL.txt", 'w', encoding='utf-8') as f:
+    # Salva todos os heróis em ALL.txt (arquivo de favoritos)
+    with open(FAVORITES_FILE, 'w', encoding='utf-8') as f:
         if heroes_list:
             f.write('\n'.join(heroes_list))
 
+# Carrega a lista de heróis favoritos a partir do ALL.txt
 def load_favorites():
-    """Carrega a lista de heróis favoritos"""
     if os.path.exists(FAVORITES_FILE):
         try:
             with open(FAVORITES_FILE, 'r', encoding='utf-8') as f:
-                return json.load(f)
+                return [line.strip() for line in f if line.strip()]
         except:
             return []
     return []
 
+# Salva a lista de heróis favoritos (delegando para save_heroes_to_files)
 def save_favorites(favorites):
-    """Salva a lista de heróis favoritos"""
-    with open(FAVORITES_FILE, 'w', encoding='utf-8') as f:
-        json.dump(favorites, f, ensure_ascii=False, indent=2)
+    save_heroes_to_files(favorites)
 
+# Adiciona um herói aos favoritos e salva direto nos arquivos
 def add_favorite(hero_name):
-    """Adiciona um herói aos favoritos e salva direto nos arquivos"""
     favorites = load_favorites()
-    if hero_name not in favorites:
+    if hero_name not in favorites: # Se o heroi não estiver em favoritos, ele é adicionado
         favorites.append(hero_name)
         save_favorites(favorites)
-        save_heroes_to_files(favorites)
         print(f"✓ {hero_name} adicionado")
         return True
     else:
         print(f"✗ {hero_name} já existe")
         return False
 
+# Remove um herói dos favoritos e atualiza os arquivos
 def remove_favorite(hero_name):
-    """Remove um herói dos favoritos e atualiza os arquivos"""
     favorites = load_favorites()
     if hero_name in favorites:
         favorites.remove(hero_name)
         save_favorites(favorites)
-        save_heroes_to_files(favorites)
         print(f"✓ {hero_name} removido")
         return True
     else:
         print(f"✗ {hero_name} não está nos favoritos")
         return False
 
+# Lista todos os heróis favoritos
 def list_favorites():
-    """Lista todos os heróis favoritos"""
     favorites = load_favorites()
     if favorites:
         for hero in favorites:

@@ -44,15 +44,11 @@ def get_hero_role(hero_name):
     return None
 
 # Encontra o herói que mais se parece com a entrada do usuário
-def find_best_match(user_input):
+def find_best_match(user_input, normalized_heroes):
     if not user_input.strip(): #entrada vazia sai
         return None
     
     normalized_input = normalize_text(user_input) # Normalização
-    all_heroes = get_all_heroes()
-    
-    # Normaliza todos os personagens
-    normalized_heroes = {normalize_text(hero): hero for hero in all_heroes}
     
     # Tenta encontrar correspondências exatas primeiro
     if normalized_input in normalized_heroes:
@@ -101,16 +97,13 @@ def load_favorites():
             return []
     return []
 
-# Salva a lista de heróis favoritos (delegando para save_heroes_to_files)
-def save_favorites(favorites):
-    save_heroes_to_files(favorites)
 
 # Adiciona um herói aos favoritos e salva direto nos arquivos
 def add_favorite(hero_name):
     favorites = load_favorites()
     if hero_name not in favorites: # Se o heroi não estiver em favoritos, ele é adicionado
         favorites.append(hero_name)
-        save_favorites(favorites)
+        save_heroes_to_files(favorites)
         print(f"✓ {hero_name} adicionado")
         return True
     else:
@@ -122,7 +115,7 @@ def remove_favorite(hero_name):
     favorites = load_favorites()
     if hero_name in favorites:
         favorites.remove(hero_name)
-        save_favorites(favorites)
+        save_heroes_to_files(favorites)
         print(f"✓ {hero_name} removido")
         return True
     else:
@@ -139,8 +132,12 @@ def list_favorites():
     else:
         print("  Nenhum favorito")
 
+# Main
 def executar():
-    """Menu principal"""
+    all_heroes = get_all_heroes()
+    # Normaliza todos os personagens
+    normalized_heroes = {normalize_text(hero): hero for hero in all_heroes}
+
     while True:
         print("\n1. Adicionar herói")
         print("2. Remover herói")
@@ -151,7 +148,7 @@ def executar():
         
         if choice == "1":
             user_input = input("Herói: ").strip()
-            match = find_best_match(user_input)
+            match = find_best_match(user_input, normalized_heroes)
             if match:
                 add_favorite(match)
             else:

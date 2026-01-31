@@ -38,6 +38,10 @@ MAPS = [
     "Esperança",
     "New Queen Street",
     "Runasapi"
+    # Flashpoint
+    "Aatlis"
+    "New Junk City"
+    "Suravasa"
 ]
 
 def format_for_file(text):

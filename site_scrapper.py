@@ -39,6 +39,10 @@ def executar():
         "Esperança",
         "New Queen Street",
         "Runasapi",
+        # Flashpoint
+        "Aatlis"
+        "New Junk City"
+        "Suravasa"
     ]
 
     # tiers que você tinha antes (adicione/remova se quiser)

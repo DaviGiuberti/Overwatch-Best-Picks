@@ -15,6 +15,7 @@ import site_scrapper
 
 
 MAP_FILE = "map.txt"
+WINRATE_FILE = "winrate.xlsx"
 
 
 IN_MAIN = True # Não executa nada na main quando false
@@ -91,9 +92,10 @@ def run_favorite():
         print(f"Erro em favoritos: {e}")
 
 def remove_map():
-    if os.path.exists(MAP_FILE):
+    if os.path.exists(MAP_FILE) and os.path.exists(WINRATE_FILE):
         try:
             os.remove(MAP_FILE)
+            os.remove(WINRATE_FILE)
             print("mapa removido com sucesso.")
         except Exception as e:
             print(f"Erro ao remover arquivo: {e}")

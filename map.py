@@ -54,20 +54,21 @@ def format_for_file(text):
     text = text.lower()
     text = text.replace(":", "")
     text = text.replace(" ", "-")
+    text = text.replace("ç", "c")
+    text = text.replace("'", "")
 
     return text
 
 
 
 def normalize_text(text):
-    """Remove acentos e normaliza o texto para comparação"""
     # Remove acentos
     nfkd = unicodedata.normalize('NFKD', text)
     text_no_accents = ''.join([c for c in nfkd if not unicodedata.combining(c)])
     return text_no_accents.lower().strip()
 
+# Encontra o mapa que mais se parece com a entrada do usuário
 def find_best_match(user_input):
-    """Encontra o mapa que mais se parece com a entrada do usuário"""
     if not user_input.strip():
         return None
     
@@ -89,8 +90,8 @@ def find_best_match(user_input):
     
     return None
 
+# Salva o nome do mapa em map.txt já normalizado
 def save_to_file(map_name):
-    """Salva o nome do mapa em map.txt já normalizado"""
     formatted_name = format_for_file(map_name)
     with open('map.txt', 'w', encoding='utf-8') as f:
         f.write(formatted_name)
